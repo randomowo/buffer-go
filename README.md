@@ -2,12 +2,6 @@
 
 Buffer structs for any service with some features
 
-# Install
-
-```bash
-go install github.com/randomowo/buffer-go@latest
-```
-
 ## Usage
 
 ### Buffer with timeout flush
@@ -19,6 +13,7 @@ package main
 
 import (
 	"time"
+
 	"github.com/randomowo/buffer-go"
 )
 
