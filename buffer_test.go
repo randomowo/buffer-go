@@ -2,6 +2,7 @@ package buffer_go
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 )
@@ -29,7 +30,70 @@ func TestBuffer(t *testing.T) {
 	expected := []any{1, 2}
 
 	if len(buf.data) != len(expected) {
-		t.Errorf("buffer size differ from expected: %d != %d", len(buf.data), len(expected))
+		t.Fatalf("buffer size differ from expected: %d != %d", len(buf.data), len(expected))
+	}
+
+	if !checkData(buf.data, expected) {
+		t.Errorf("buffer differ from expected: %+v %+v", buf.data, expected)
+	}
+}
+
+func TestBuffer_PushRace(t *testing.T) {
+	buf := NewBuffer(&MockedFlusher{}, nil, nil)
+
+	goroutinesCount := 10
+	valueCountInGoroutines := 10
+
+	wg := new(sync.WaitGroup)
+
+	for i := 0; i < goroutinesCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < valueCountInGoroutines; j++ {
+				_ = buf.Push(nil)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	expected := make([]any, goroutinesCount*valueCountInGoroutines)
+
+	if len(buf.data) != len(expected) {
+		t.Fatalf("buffer size differ from expected: %d != %d", len(buf.data), len(expected))
+	}
+
+	if !checkData(buf.data, expected) {
+		t.Errorf("buffer differ from expected: %+v %+v", buf.data, expected)
+	}
+}
+
+func TestBuffer_PushRace2(t *testing.T) {
+	buf := NewBuffer(&MockedFlusher{}, nil, nil)
+
+	goroutinesCount := 10
+	valueCountInGoroutines := 10
+
+	wg := new(sync.WaitGroup)
+
+	for i := 0; i < goroutinesCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < valueCountInGoroutines; j++ {
+				_ = buf.Flush()
+				_ = buf.Push(nil)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	expected := make([]any, 1)
+
+	if len(buf.data) != len(expected) {
+		t.Fatalf("buffer size differ from expected: %d != %d", len(buf.data), len(expected))
 	}
 
 	if !checkData(buf.data, expected) {
@@ -46,7 +110,7 @@ func TestBuffer_WithMaxSize(t *testing.T) {
 	expected := []any{2}
 
 	if len(buf.data) != len(expected) {
-		t.Errorf("buffer size differ from expected: %d != %d", len(buf.data), len(expected))
+		t.Fatalf("buffer size differ from expected: %d != %d", len(buf.data), len(expected))
 	}
 
 	if !checkData(buf.data, expected) {
@@ -64,21 +128,21 @@ func TestBuffer_WithTimeoutFlush(t *testing.T) {
 	expected := []any{1, 2}
 
 	if len(buf.data) != len(expected) {
-		t.Errorf("buffer size differ from expected: %d != %d", len(buf.data), len(expected))
+		t.Fatalf("buffer size differ from expected: %d != %d", len(buf.data), len(expected))
 	}
 
 	if !checkData(buf.data, expected) {
-		t.Errorf("buffer differ from expected: %+v %+v", buf.data, expected)
+		t.Fatalf("buffer differ from expected: %+v %+v", buf.data, expected)
 	}
 
 	time.Sleep(time.Second * 1)
 
 	if len(buf.data) != len(expected) {
-		t.Errorf("buffer size differ from expected: %d != %d", len(buf.data), len(expected))
+		t.Fatalf("buffer size differ from expected: %d != %d", len(buf.data), len(expected))
 	}
 
 	if !checkData(buf.data, expected) {
-		t.Errorf("buffer differ from expected: %+v %+v", buf.data, expected)
+		t.Fatalf("buffer differ from expected: %+v %+v", buf.data, expected)
 	}
 
 	time.Sleep(time.Second * 2)
@@ -96,11 +160,11 @@ func TestTypedBuffer(t *testing.T) {
 	expected := []any{1, 2}
 
 	if len(buf.data) != len(expected) {
-		t.Errorf("buffer size differ from expected: %d != %d", len(buf.data), len(expected))
+		t.Fatalf("buffer size differ from expected: %d != %d", len(buf.data), len(expected))
 	}
 
 	if !checkData(buf.data, expected) {
-		t.Errorf("buffer differ from expected: %+v %+v", buf.data, expected)
+		t.Fatalf("buffer differ from expected: %+v %+v", buf.data, expected)
 	}
 
 	err := buf.Push("test")
