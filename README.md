@@ -88,3 +88,9 @@ func main() {
 	_ = buffer.Push(4) // [4]
 }
 ```
+
+
+# TODO:
+- [ ] Pop
+- [ ] Contains
+- [ ] UniqBuffer
